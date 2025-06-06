@@ -146,7 +146,7 @@ MIT License
 
 ## 联系方式
 
-如有问题请联系：your-email@example.com
+如有问题请联系：2141743939@qq.com
 
 ```bash
 python app.py
@@ -230,7 +230,7 @@ MIT License - 详见 LICENSE 文件
 
 ## 作者
 
-[你的名字]
+[张岩]
 
 ## 致谢
 
@@ -246,5 +246,4 @@ MIT License - 详见 LICENSE 文件
 - Markdown 支持
 - 响应式设计
 =======
-# blog
->>>>>>> 4a2c0473d4794204dce27c5109ff739ef033fae4
+
