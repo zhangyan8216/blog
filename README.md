@@ -1,4 +1,4 @@
- # Flask Markdown 博客系统
+# Flask Markdown 博客系统
 
 这是一个使用 Flask 框架构建的简单博客系统，支持 Markdown 格式的文章。它具有简洁的界面设计，支持代码高亮显示，并且完全响应式，可以在各种设备上良好显示。
 
@@ -245,3 +245,6 @@ MIT License - 详见 LICENSE 文件
 - 基本的博客功能实现
 - Markdown 支持
 - 响应式设计
+=======
+# blog
+>>>>>>> 4a2c0473d4794204dce27c5109ff739ef033fae4
