@@ -1,0 +1,34 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>{% if post %}编辑文章{% else %}新建文章{% endif %}</h1>
+    
+    <form method="POST" class="post-form">
+        {{ form.hidden_tag() }}
+        
+        <div class="form-group">
+            <label for="title">标题</label>
+            <input type="text" id="title" name="title" value="{{ post.title if post }}" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="content">内容</label>
+            <textarea id="content" name="content" rows="15" required>{{ post.content if post }}</textarea>
+            <small>支持Markdown语法</small>
+        </div>
+        
+        <div class="form-actions">
+            <button type="submit" class="btn btn-primary">保存</button>
+            <a href="{{ url_for('admin.post_list') }}" class="btn btn-cancel">取消</a>
+        </div>
+    </form>
+</div>
+
+<script>
+// 简单的Markdown预览功能
+document.getElementById('content').addEventListener('input', function(e) {
+    // 可以在这里添加实时预览逻辑
+});
+</script>
+{% endblock %}

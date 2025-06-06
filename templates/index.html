@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}首页 - 我的博客{% endblock %}
+
+{% block content %}
+<style>
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    .content-wrapper {
+        display: grid;
+        grid-template-columns: 1fr 300px;
+        gap: 2rem;
+        margin-top: 2rem;
+    }
+
+    .post-card {
+        margin-bottom: 3rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .post-title {
+        font-weight: 700;
+        font-size: 1.5rem;
+        text-decoration: none;
+        margin-bottom: 0.5rem;
+        display: block;
+        background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .post-title:hover {
+        background: linear-gradient(90deg, var(--link-hover-color), var(--accent-color));
+        -webkit-background-clip: text;
+        background-clip: text;
+    }
+    
+    .post-meta {
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .post-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .post-tags .tag {
+        display: inline-flex;
+        align-items: center;
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+        text-decoration: none;
+        padding: 0.25rem 0.75rem;
+        border-radius: 999px;
+        background-color: rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+    }
+    
+    .post-tags .tag:hover {
+        color: white;
+        background-color: var(--primary-color);
+        transform: scale(1.05);
+    }
+    
+    .post-excerpt {
+        color: var(--text-color);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+    
+    .read-more {
+        color: var(--primary-color);
+        font-weight: 500;
+        text-decoration: none;
+    }
+    
+    .read-more:hover {
+        text-decoration: underline;
+    }
+
+    .sidebar {
+        padding-top: 1rem;
+    }
+    
+    .sidebar-card {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background-color: var(--highlight-bg);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        transition: all 0.3s ease;
+    }
+
+    .sidebar-card:hover {
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        transform: translateY(-2px);
+    }
+    
+    .sidebar-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--text-color);
+    }
+    
+    .tags-cloud {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .tag-cloud-item {
+        display: inline-flex;
+        align-items: center;
+        color: var(--secondary-color);
+        font-size: 0.875rem;
+        text-decoration: none;
+        padding: 0.35rem 1rem;
+        margin: 0.25rem;
+        border-radius: 999px;
+        background-color: rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+    }
+    
+    .tag-name {
+        margin-right: 0.3rem;
+    }
+    
+    .tag-count {
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+    
+    .tag-cloud-item:hover {
+        color: white;
+        background-color: var(--primary-color);
+        transform: scale(1.05);
+    }
+    
+    .tag-cloud-item:hover .tag-count {
+        opacity: 0.9;
+    }
+    
+    .recent-posts {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+    
+    .recent-post-item {
+        color: var(--text-color);
+        text-decoration: none;
+        font-size: 0.9375rem;
+        line-height: 1.5;
+    }
+    
+    .recent-post-item {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        transition: all 0.2s ease;
+    }
+    
+    .recent-post-item:hover {
+        color: var(--text-color-invert);
+        background-color: var(--primary-color);
+        transform: translateX(4px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    @media (max-width: 768px) {
+        .content-wrapper {
+            grid-template-columns: 1fr;
+        }
+        
+        .sidebar {
+            margin-top: 3rem;
+        }
+    }
+</style>
+
+<div class="main-container">
+    <div class="content-wrapper">
+        <main>
+            {% for post in posts %}
+            <article class="post-card">
+                <a href="{{ url_for('post', filename=post.filename) }}" class="post-title">
+                    {{ post.title }}
+                </a>
+                <div class="post-meta">
+                    <span>{{ post.date.strftime('%Y-%m-%d') }}</span>
+                    {% if post.metadata.tags %}
+                    <span> • </span>
+                    <div class="post-tags">
+                        {% for tag in post.metadata.tags %}
+                        <a href="{{ url_for('tag', tag=tag) }}" class="tag">
+                            <span class="tag-name">{{ tag }}</span>
+                        </a>
+                        {% if not loop.last %}{% endif %}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="post-excerpt">
+                    {{ post.summary|safe }}
+                </div>
+                <a href="{{ url_for('post', filename=post.filename) }}" class="read-more">
+                    阅读全文 →
+                </a>
+            </article>
+            {% endfor %}
+        </main>
+
+        <aside class="sidebar">
+            <div class="sidebar-card">
+                <h3 class="sidebar-title">关于</h3>
+                <p>这里是我的个人博客，分享技术、生活和思考。</p>
+            </div>
+            
+            <div class="sidebar-card">
+                <h3 class="sidebar-title">标签</h3>
+                <div class="tags-cloud">
+                    {% for tag in tags %}
+                    <a href="{{ url_for('tag', tag=tag.name) }}" class="tag-cloud-item">
+                        <span class="tag-name">{{ tag.name }}</span>
+                        <span class="tag-count">{{ tag.count }}</span>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            
+            <div class="sidebar-card">
+                <h3 class="sidebar-title">最新文章</h3>
+                <div class="recent-posts">
+                    {% for post in recent_posts %}
+                    <a href="{{ url_for('post', filename=post.filename) }}" class="recent-post-item">
+                        {{ post.title }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+{% endblock %}

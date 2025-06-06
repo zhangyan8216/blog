@@ -1,0 +1,17 @@
+{% extends "admin/base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>仪表盘</h1>
+    <div class="stats">
+        <div class="stat-card">
+            <h3>文章总数</h3>
+            <p>{{ post_count }}</p>
+        </div>
+        <div class="stat-card">
+            <h3>当前主题</h3>
+            <p>{{ current_theme }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

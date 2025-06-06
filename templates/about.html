@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}关于 - 我的博客{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="post-card about-header">
+            <div class="text-center mb-4">
+                <img src="{{ url_for('static', filename='images/avatar.jpg') }}" alt="头像" class="about-avatar">
+                <h1 class="mt-4">关于我的博客</h1>
+                <p class="text-muted">分享技术，记录生活</p>
+                <div class="social-links mt-3">
+                    <a href="https://github.com/yourusername" target="_blank" class="mx-2" title="GitHub">
+                        <i class="fab fa-github fa-lg"></i>
+                    </a>
+                    <a href="https://twitter.com/yourusername" target="_blank" class="mx-2" title="Twitter">
+                        <i class="fab fa-twitter fa-lg"></i>
+                    </a>
+                    <a href="mailto:example@example.com" class="mx-2" title="Email">
+                        <i class="fas fa-envelope fa-lg"></i>
+                    </a>
+                    <a href="https://linkedin.com/in/yourusername" target="_blank" class="mx-2" title="LinkedIn">
+                        <i class="fab fa-linkedin fa-lg"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="post-card">
+            <div class="about-section">
+                <h2>
+                    <i class="fas fa-info-circle me-2"></i>博客简介
+                </h2>
+                <p>欢迎来到我的个人博客！这是一个使用 Flask 和 Markdown 构建的简单博客系统。我在这里分享编程技术、学习笔记和个人见解。</p>
+                <div class="feature-grid">
+                    <div class="feature-item">
+                        <i class="fas fa-flask"></i>
+                        <span>Flask 框架构建</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fab fa-markdown"></i>
+                        <span>Markdown 支持</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-mobile-alt"></i>
+                        <span>响应式设计</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-code"></i>
+                        <span>代码高亮</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-paint-brush"></i>
+                        <span>简洁美观</span>
+                    </div>
+                    <div class="feature-item">
+                        <i class="fas fa-moon"></i>
+                        <span>深色模式</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="post-card">
+            <div class="about-section">
+                <h2>
+                    <i class="fas fa-user-circle me-2"></i>关于作者
+                </h2>
+                <p>我是一名热爱编程和技术的开发者，喜欢探索新技术并分享学习心得。通过这个博客，我希望能与更多志同道合的朋友交流学习，共同进步。</p>
+                
+                <h3 class="mt-4 mb-3">技术栈</h3>
+                <div class="skills-grid">
+                    <div class="skill-item">
+                        <div class="skill-icon">
+                            <i class="fab fa-python"></i>
+                        </div>
+                        <div class="skill-info">
+                            <h4>Python</h4>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 90%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="skill-info">
+                            <h4>Web 开发</h4>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 85%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-icon">
+                            <i class="fab fa-js"></i>
+                        </div>
+                        <div class="skill-info">
+                            <h4>JavaScript</h4>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 80%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="skill-item">
+                        <div class="skill-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div class="skill-info">
+                            <h4>数据分析</h4>
+                            <div class="skill-bar">
+                                <div class="skill-progress" style="width: 75%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="post-card">
+            <div class="about-section">
+                <h2>
+                    <i class="fas fa-paper-plane me-2"></i>联系我
+                </h2>
+                <p>如果你有任何问题、建议或合作意向，欢迎通过以下方式联系我：</p>
+                <div class="contact-grid">
+                    <a href="mailto:example@example.com" class="contact-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>example@example.com</span>
+                    </a>
+                    <a href="https://github.com/yourusername" target="_blank" class="contact-item">
+                        <i class="fab fa-github"></i>
+                        <span>GitHub</span>
+                    </a>
+                    <a href="https://twitter.com/yourusername" target="_blank" class="contact-item">
+                        <i class="fab fa-twitter"></i>
+                        <span>Twitter</span>
+                    </a>
+                    <a href="https://linkedin.com/in/yourusername" target="_blank" class="contact-item">
+                        <i class="fab fa-linkedin"></i>
+                        <span>LinkedIn</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

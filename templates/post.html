@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}{{ post.title }} - 我的博客{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <article class="blog-post">
+            <h1 class="mb-3">{{ post.title }}</h1>
+            <div class="text-muted mb-4">
+                <small>{{ post.date.strftime('%Y-%m-%d') }}</small>
+                {% if post.metadata.tags %}
+                <span class="ms-2">
+                    {% for tag in post.metadata.tags %}
+                    <a href="{{ url_for('tag', tag=tag) }}" class="text-decoration-none">
+                        <span class="badge bg-primary">{{ tag }}</span>
+                    </a>
+                    {% endfor %}
+                </span>
+                {% endif %}
+            </div>
+            <div class="blog-post-content">
+                {{ markdown(post.content)|safe }}
+            </div>
+        </article>
+
+        <div class="mt-5">
+            <a href="/" class="btn btn-outline-primary">
+                <i class="bi bi-arrow-left"></i> 返回首页
+            </a>
+        </div>
+        
+        <!-- Giscus 评论区 -->
+        <div class="mt-5">
+            <h3>评论</h3>
+            <div class="giscus-container">
+                <script src="https://giscus.app/client.js"
+                        data-repo="{{ giscus['repo'] }}"
+                        data-repo-id="{{ giscus['repo_id'] }}"
+                        data-category="{{ giscus['category'] }}"
+                        data-category-id="{{ giscus['category_id'] }}"
+                        data-mapping="{{ giscus['mapping'] }}"
+                        data-reactions-enabled="{{ giscus['reactions_enabled'] }}"
+                        data-theme="{{ giscus['theme'] }}"
+                        data-lang="{{ giscus['lang'] }}"
+                        data-strict="1"
+                        crossorigin="anonymous"
+                        async>
+                </script>
+            </div>
+            
+            {% if config.get('DEBUG_GISCUS', False) %}
+            <div class="mt-4 p-3 bg-light rounded">
+                <h5>Giscus 调试信息</h5>
+                <div class="small">
+                    <p><strong>仓库:</strong> {{ giscus['repo'] }}</p>
+                    <p><strong>仓库ID:</strong> {{ giscus['repo_id'] }}</p>
+                    <p><strong>分类:</strong> {{ giscus['category'] }}</p>
+                    <p><strong>分类ID:</strong> {{ giscus['category_id'] }}</p>
+                    <p><strong>映射:</strong> {{ giscus['mapping'] }}</p>
+                    <p><strong>当前路径:</strong> {{ request.path }}</p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
