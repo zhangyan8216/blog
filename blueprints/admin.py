@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from blueprints.auth import login_required
+from forms import PostForm
 from werkzeug.utils import secure_filename
 import os
 from datetime import datetime
@@ -30,15 +31,12 @@ def post_list():
 @admin_bp.route('/posts/create', methods=['GET', 'POST'])
 @login_required
 def create_post():
-    if request.method == 'POST':
-        title = request.form['title']
-        content = request.form['content']
-        excerpt = content[:100] + '...' if len(content) > 100 else content
-        
+    form = PostForm()
+    if form.validate_on_submit():
         new_post = Post(
-            title=title,
-            content=content,
-            excerpt=excerpt,
+            title=form.title.data,
+            content=form.content.data,
+            excerpt=form.content.data[:100] + '...' if len(form.content.data) > 100 else form.content.data,
             created_at=datetime.now()
         )
         
@@ -47,16 +45,16 @@ def create_post():
         flash('文章创建成功', 'success')
         return redirect(url_for('admin.post_list'))
     
-    return render_template('admin/post_form.html')
+    return render_template('admin/post_form.html', form=form)
 
 @admin_bp.route('/posts/<int:id>/edit', methods=['GET', 'POST'])
 @login_required
 def edit_post(id):
     post = Post.query.get_or_404(id)
+    form = PostForm(obj=post)
     
-    if request.method == 'POST':
-        post.title = request.form['title']
-        post.content = request.form['content']
+    if form.validate_on_submit():
+        form.populate_obj(post)
         post.excerpt = post.content[:100] + '...' if len(post.content) > 100 else post.content
         post.updated_at = datetime.now()
         
@@ -64,7 +62,7 @@ def edit_post(id):
         flash('文章更新成功', 'success')
         return redirect(url_for('admin.post_list'))
     
-    return render_template('admin/post_form.html', post=post)
+    return render_template('admin/post_form.html', form=form, post=post)
 
 @admin_bp.route('/posts/<int:id>/delete', methods=['POST'])
 @login_required

@@ -11,11 +11,5 @@ class Post(db.Model):
 
 class Theme(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(50), nullable=False, unique=True)
-    css_file = db.Column(db.String(100), nullable=False)
-    is_active = db.Column(db.Boolean, default=False)
-    description = db.Column(db.String(200))
+    name = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
-    
-    def __repr__(self):
-        return f'<Theme {self.name}>'

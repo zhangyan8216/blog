@@ -8,13 +8,19 @@
         {{ form.hidden_tag() }}
         
         <div class="form-group">
-            <label for="title">标题</label>
-            <input type="text" id="title" name="title" value="{{ post.title if post }}" required>
+            {{ form.title.label }}
+            {{ form.title(class="form-control") }}
+            {% for error in form.title.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
         </div>
         
         <div class="form-group">
-            <label for="content">内容</label>
-            <textarea id="content" name="content" rows="15" required>{{ post.content if post }}</textarea>
+            {{ form.content.label }}
+            {{ form.content(class="form-control", rows=15) }}
+            {% for error in form.content.errors %}
+                <span class="text-danger">{{ error }}</span>
+            {% endfor %}
             <small>支持Markdown语法</small>
         </div>
         
