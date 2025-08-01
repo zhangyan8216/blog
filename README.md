@@ -21,7 +21,7 @@
 1. 克隆项目到本地：
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/zhangyan8216/blog
 cd flask-markdown-blog
 ```
 
