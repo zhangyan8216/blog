@@ -13,3 +13,6 @@ class Theme(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(50), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
+    is_active = db.Column(db.Boolean, default=False)
+    css_file = db.Column(db.String(200))
+    description = db.Column(db.String(200))

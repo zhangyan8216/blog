@@ -1,0 +1,29 @@
+{
+  "site_title": "Memory Blog",
+  "site_description": "一个分享技术与生活的个人博客",
+  "site_keywords": "博客,技术,编程,生活",
+  "site_author": "博主",
+  "social_links": {
+    "github": "",
+    "twitter": "",
+    "weibo": "",
+    "zhihu": ""
+  },
+  "seo": {
+    "baidu_verification": "",
+    "ga_measurement_id": "",
+    "google_verification": ""
+  },
+  "features": {
+    "comments_enabled": true,
+    "rss_enabled": true,
+    "toc_enabled": true
+  },
+  "theme": {
+    "background_color": "#ffffff",
+    "primary_color": "#3b82f6",
+    "text_color": "#1f2937"
+  },
+  "created_at": "2026-02-04T00:00:00",
+  "updated_at": "2026-02-04T16:30:40.670029"
+}

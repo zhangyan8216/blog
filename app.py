@@ -1,37 +1,40 @@
-from flask import Flask, render_template, request, jsonify, make_response, session, redirect, url_for
-from flask_migrate import Migrate
-from extensions import db
+from flask import Flask, request, jsonify, make_response
+from flask_cors import CORS
 from blueprints.admin import admin_bp
 from blueprints.auth import auth_bp
-from themes.views import theme_bp
 import os
 from datetime import datetime
 import markdown
 import yaml
 from collections import defaultdict
 import feedgenerator
+import json
 from urllib.parse import urljoin
+from dotenv import load_dotenv
+from utils.jwt_utils import verify_token, admin_required, user_required
 
-# 配置密钥（生产环境应从环境变量获取）
+# 加载环境变量
+load_dotenv()
+
 SECRET_KEY = os.getenv('FLASK_SECRET_KEY', 'dev-secret-key')
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
 
-# 数据库配置
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///D:/自己的项目/instance/site.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+# 配置 CORS
+CORS(app, resources={
+    r"/api/*": {
+        "origins": ["*"],  # 在生产环境中应该设置具体的域名
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "expose_headers": ["Content-Length"],
+        "supports_credentials": True
+    }
+})
 
-# 初始化数据库和迁移
-db.init_app(app)
-migrate = Migrate(app, db)
-
-# 注册蓝图
 app.register_blueprint(admin_bp, url_prefix='/admin')
 app.register_blueprint(auth_bp)
-app.register_blueprint(theme_bp, url_prefix='/themes')
 
-# Giscus 配置
 app.config['GISCUS'] = {
     'repo': 'zhangyan8216/comments',
     'repo_id': 'R_kgDOK4TURA',
@@ -44,35 +47,36 @@ app.config['GISCUS'] = {
 }
 app.config['DEBUG_GISCUS'] = True
 
-# 配置生产环境设置
-if os.getenv('FLASK_ENV') == 'production':
-    app.config.update(
-        SESSION_COOKIE_SECURE=True,
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE='Lax'
-    )
-
-# Giscus 配置 - 使用最基本的设置
-app.config['GISCUS'] = {
-    'repo': 'zhangyan8216/comments',
-    'repo_id': 'R_kgDOK4TURA',
-    'category': 'Announcements',  # 使用默认分类
-    'category_id': 'DIC_kwDOK4TURA4CbzEA',
-    'mapping': 'pathname',  # 使用路径名而不是 URL
-    'reactions_enabled': '1',
-    'theme': 'light',
-    'lang': 'zh-CN'
-}
-
-# 添加调试配置
-app.config['DEBUG_GISCUS'] = True
-
-# 添加markdown函数到模板上下文
 @app.context_processor
 def utility_processor():
     def render_markdown(text):
         return markdown.markdown(text, extensions=['fenced_code', 'tables', 'toc'])
     return dict(markdown=render_markdown)
+
+def get_current_user_from_token():
+    """从请求中获取当前用户"""
+    token = None
+    
+    if 'Authorization' in request.headers:
+        auth_header = request.headers['Authorization']
+        if auth_header.startswith('Bearer '):
+            token = auth_header[7:]
+    
+    if not token:
+        token = request.cookies.get('token')
+    
+    if not token:
+        return None
+    
+    payload = verify_token(token)
+    if not payload:
+        return None
+    
+    return {
+        'id': payload.get('user_id'),
+        'username': payload.get('username'),
+        'role': payload.get('role')
+    }
 
 def get_posts():
     posts = []
@@ -80,7 +84,6 @@ def get_posts():
         if filename.endswith('.md'):
             with open(os.path.join('content', filename), 'r', encoding='utf-8') as f:
                 content = f.read()
-                # 分离元数据和内容
                 if content.startswith('---'):
                     parts = content.split('---', 2)[1:]
                     if len(parts) == 2:
@@ -92,20 +95,27 @@ def get_posts():
                 else:
                     metadata = {}
                 
-                # 如果没有标题，使用文件名作为标题
                 if 'title' not in metadata:
                     metadata['title'] = os.path.splitext(filename)[0]
                 
-                # 如果没有日期，使用文件修改时间
                 if 'date' not in metadata:
                     file_mtime = os.path.getmtime(os.path.join('content', filename))
                     metadata['date'] = datetime.fromtimestamp(file_mtime)
+                else:
+                    from datetime import date
+                    if isinstance(metadata['date'], str):
+                        try:
+                            metadata['date'] = datetime.fromisoformat(metadata['date'])
+                        except ValueError:
+                            metadata['date'] = datetime.now()
+                    elif isinstance(metadata['date'], date) and not isinstance(metadata['date'], datetime):
+                        metadata['date'] = datetime.combine(metadata['date'], datetime.min.time())
                 
-                # 生成文章摘要
                 html_content = markdown.markdown(content)
-                summary = html_content[:200] + '...' if len(html_content) > 200 else html_content
+                import re
+                plain_text = re.sub('<[^<]+?>', '', html_content)
+                summary = plain_text[:200] + '...' if len(plain_text) > 200 else plain_text
                 
-                # 确保标签是列表格式
                 tags = metadata.get('tags', [])
                 if isinstance(tags, str):
                     tags = [tag.strip() for tag in tags.split(',')]
@@ -117,14 +127,14 @@ def get_posts():
                     'summary': summary,
                     'content': content,
                     'metadata': metadata,
-                    'tags': tags
+                    'tags': tags,
+                    'author_id': metadata.get('author_id'),
+                    'author_name': metadata.get('author_name')
                 })
     
-    # 按日期排序
     return sorted(posts, key=lambda x: x['date'], reverse=True)
 
 def get_tags():
-    """获取所有标签及其文章数量"""
     posts = get_posts()
     tags = defaultdict(int)
     
@@ -135,7 +145,6 @@ def get_tags():
     return dict(tags)
 
 def get_posts_by_tag():
-    """获取每个标签下的所有文章"""
     posts = get_posts()
     tag_posts = defaultdict(list)
     
@@ -143,7 +152,6 @@ def get_posts_by_tag():
         for tag in post.get('tags', []):
             tag_posts[tag].append(post)
     
-    # 对每个标签下的文章按日期排序
     for tag in tag_posts:
         tag_posts[tag] = sorted(tag_posts[tag], key=lambda x: x['date'], reverse=True)
     
@@ -154,56 +162,361 @@ class Pagination:
         self.items = items
         self.page = page
         self.per_page = per_page
-        
-        # 计算总页数
         self.total = len(items)
         self.pages = (self.total + per_page - 1) // per_page
-        
-        # 确保当前页在有效范围内
         self.page = max(1, min(self.page, self.pages))
-        
-        # 获取当前页的数据
         start = (page - 1) * per_page
         end = start + per_page
         self.items = items[start:end]
 
-@app.route('/')
-def index():
-    # 获取当前页码，默认为1
-    page = request.args.get('page', 1, type=int)
-    per_page = 5  # 每页显示5篇文章
-    
-    # 获取所有文章
+@app.route('/api/posts')
+def api_posts():
     all_posts = get_posts()
-    
-    # 创建分页对象
-    pagination = Pagination(all_posts, page, per_page)
-    
-    # 获取标签统计
-    tags = get_tags()
-    
-    # 获取最新文章（取前5篇）
-    recent_posts = all_posts[:5]
-    
-    return render_template('index.html', 
-                         posts=pagination.items,
-                         pagination=pagination,
-                         tags=tags,
-                         recent_posts=recent_posts)
+    return jsonify(all_posts)
 
-@app.route('/post/<filename>')
-def post(filename):
+@app.route('/api/posts/<filename>')
+def api_post(filename):
     posts = get_posts()
     post = next((post for post in posts if post['filename'] == filename), None)
     if post is None:
-        return 'Post not found', 404
+        return jsonify({'error': 'Post not found'}), 404
+    return jsonify(post)
+
+@app.route('/api/tags')
+def api_tags():
+    tags = get_tags()
+    tag_posts = get_posts_by_tag()
+    return jsonify({
+        'tags': tags,
+        'tag_posts': tag_posts
+    })
+
+@app.route('/api/archive')
+def api_archive():
+    articles = get_posts()
+    return jsonify({
+        'articles': articles
+    })
+
+@app.route('/api/about')
+def api_about():
+    return jsonify({'message': 'About page data'})
+
+@app.route('/api/admin/categories', methods=['GET'])
+@admin_required
+def api_get_categories():
+    """获取所有分类"""
+    posts = get_posts()
+    categories_count = defaultdict(int)
     
-    # 使用基本的 Giscus 配置
-    return render_template('post.html', post=post, giscus=app.config['GISCUS'], config=app.config)
+    for post in posts:
+        category = post.get('metadata', {}).get('category')
+        if category:
+            categories_count[category] += 1
+    
+    categories = []
+    for name, count in categories_count.items():
+        categories.append({
+            'name': name,
+            'slug': name.lower().replace(' ', '-'),
+            'article_count': count,
+            'created_at': datetime.now().isoformat()
+        })
+    
+    categories = sorted(categories, key=lambda x: x['article_count'], reverse=True)
+    
+    return jsonify({'categories': categories}), 200
+
+@app.route('/api/admin/categories', methods=['POST'])
+@admin_required
+def api_create_category():
+    """创建分类"""
+    data = request.get_json()
+    name = data.get('name')
+    
+    if not name:
+        return jsonify({'error': 'Category name is required'}), 400
+    
+    return jsonify({
+        'message': 'Category created successfully',
+        'category': {
+            'name': name,
+            'slug': name.lower().replace(' ', '-'),
+            'article_count': 0,
+            'created_at': datetime.now().isoformat()
+        }
+    }), 201
+
+@app.route('/api/admin/categories/<category_name>', methods=['PUT'])
+@admin_required
+def api_update_category(category_name):
+    """更新分类"""
+    data = request.get_json()
+    new_name = data.get('name')
+    
+    if not new_name:
+        return jsonify({'error': 'Category name is required'}), 400
+    
+    return jsonify({
+        'message': 'Category updated successfully',
+        'category': {
+            'name': new_name,
+            'slug': new_name.lower().replace(' ', '-'),
+            'created_at': datetime.now().isoformat()
+        }
+    }), 200
+
+@app.route('/api/admin/categories/<category_name>', methods=['DELETE'])
+@admin_required
+def api_delete_category(category_name):
+    """删除分类"""
+    return jsonify({'message': 'Category deleted successfully'}), 200
+
+@app.route('/api/admin/tags', methods=['GET'])
+@admin_required
+def api_get_tags():
+    """获取所有标签统计"""
+    posts = get_posts()
+    tags_count = defaultdict(int)
+    tags_posts = defaultdict(list)
+    
+    for post in posts:
+        tags = post.get('tags', [])
+        for tag in tags:
+            tags_count[tag] += 1
+            tags_posts[tag].append({
+                'filename': post['filename'],
+                'title': post['title']
+            })
+    
+    tags = []
+    for name, count in tags_count.items():
+        tags.append({
+            'name': name,
+            'slug': name.lower().replace(' ', '-'),
+            'article_count': count,
+            'articles': tags_posts[name][:5]
+        })
+    
+    tags = sorted(tags, key=lambda x: x['article_count'], reverse=True)
+    
+    return jsonify({'tags': tags}), 200
+
+@app.route('/api/admin/settings', methods=['GET'])
+@admin_required
+def api_get_settings():
+    """获取网站设置"""
+    settings_file = 'data/settings.json'
+    if os.path.exists(settings_file):
+        with open(settings_file, 'r', encoding='utf-8') as f:
+            settings = json.load(f)
+        return jsonify(settings), 200
+    else:
+        default_settings = {
+            'site_title': 'Memory Blog',
+            'site_description': '一个分享技术与生活的个人博客',
+            'site_keywords': '博客,技术,编程,生活',
+            'site_author': '博主',
+            'social_links': {
+                'github': '',
+                'twitter': '',
+                'weibo': '',
+                'zhihu': ''
+            },
+            'seo': {
+                'baidu_verification': '',
+                'google_verification': '',
+                'ga_measurement_id': ''
+            },
+            'features': {
+                'comments_enabled': True,
+                'rss_enabled': True,
+                'toc_enabled': True
+            }
+        }
+        return jsonify(default_settings), 200
+
+@app.route('/api/admin/settings', methods=['PUT'])
+@admin_required
+def api_update_settings():
+    """更新网站设置"""
+    data = request.get_json()
+    settings_file = 'data/settings.json'
+    
+    current_settings = {}
+    if os.path.exists(settings_file):
+        with open(settings_file, 'r', encoding='utf-8') as f:
+            current_settings = json.load(f)
+    
+    current_settings.update(data)
+    current_settings['updated_at'] = datetime.now().isoformat()
+    
+    with open(settings_file, 'w', encoding='utf-8') as f:
+        json.dump(current_settings, f, ensure_ascii=False, indent=2)
+    
+    return jsonify({
+        'message': 'Settings updated successfully',
+        'settings': current_settings
+    }), 200
+
+@app.route('/api/posts', methods=['POST'])
+@user_required
+def api_create_post():
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    title = data.get('title')
+    content = data.get('content')
+    
+    # 从 request 对象获取用户信息（由 user_required 装饰器设置）
+    current_user = {
+        'id': request.user_id,
+        'username': request.username,
+        'role': request.user_role
+    }
+    
+    timestamp = int(datetime.now().timestamp())
+    filename = f"{timestamp}.md"
+    
+    # 验证输入
+    if not title or not isinstance(title, str) or len(title) > 200:
+        return jsonify({'error': 'Invalid title'}), 400
+    
+    if not content or not isinstance(content, str):
+        return jsonify({'error': 'Invalid content'}), 400
+    
+    # 验证标签和分类
+    tags = data.get('tags', [])
+    if tags and not isinstance(tags, list):
+        return jsonify({'error': 'Invalid tags format'}), 400
+    
+    category = data.get('category')
+    if category and not isinstance(category, str):
+        return jsonify({'error': 'Invalid category format'}), 400
+    
+    metadata = {
+        'title': title,
+        'date': datetime.now().isoformat(),
+        'tags': tags,
+        'category': category,
+        'author_id': current_user['id'],
+        'author_name': current_user['username']
+    }
+    
+    article_content = '---\n'
+    for key, value in metadata.items():
+        if value:
+            if isinstance(value, list):
+                article_content += f'{key}: {value}\n'
+            else:
+                article_content += f'{key}: {value}\n'
+    article_content += '---\n\n'
+    article_content += content
+    
+    try:
+        # 确保 filename 不包含路径遍历字符
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({'error': 'Invalid filename'}), 400
+        
+        # 确保 content 目录存在
+        os.makedirs('content', exist_ok=True)
+        
+        # 安全的文件路径
+        file_path = os.path.join('content', filename)
+        # 确保文件路径在 content 目录内
+        if not os.path.abspath(file_path).startswith(os.path.abspath('content')):
+            return jsonify({'error': 'Invalid file path'}), 400
+        
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(article_content)
+        return jsonify({'message': 'Post created successfully', 'filename': filename}), 201
+    except Exception as e:
+        return jsonify({'error': 'Failed to create post'}), 500
+
+@app.route('/api/posts/<filename>', methods=['PUT'])
+@user_required
+def api_update_post(filename):
+    data = request.get_json()
+    if not data:
+        return jsonify({'error': 'No data provided'}), 400
+    
+    title = data.get('title')
+    content = data.get('content')
+    
+    # 从 request 对象获取用户信息（由 user_required 装饰器设置）
+    current_user = {
+        'id': request.user_id,
+        'username': request.username,
+        'role': request.user_role
+    }
+    
+    # 验证输入
+    if not title or not isinstance(title, str) or len(title) > 200:
+        return jsonify({'error': 'Invalid title'}), 400
+    
+    if not content or not isinstance(content, str):
+        return jsonify({'error': 'Invalid content'}), 400
+    
+    # 验证标签和分类
+    tags = data.get('tags', [])
+    if tags and not isinstance(tags, list):
+        return jsonify({'error': 'Invalid tags format'}), 400
+    
+    category = data.get('category')
+    if category and not isinstance(category, str):
+        return jsonify({'error': 'Invalid category format'}), 400
+    
+    # 验证 filename
+    if '..' in filename or '/' in filename or '\\' in filename:
+        return jsonify({'error': 'Invalid filename'}), 400
+    
+    # 检查文章是否存在
+    post_file = os.path.join('content', f"{filename}.md")
+    # 确保文件路径在 content 目录内
+    if not os.path.abspath(post_file).startswith(os.path.abspath('content')):
+        return jsonify({'error': 'Invalid file path'}), 400
+    
+    if not os.path.exists(post_file):
+        return jsonify({'error': 'Post not found'}), 404
+    
+    # 检查用户是否有权限编辑文章
+    post = next((post for post in get_posts() if post['filename'] == filename), None)
+    if not post:
+        return jsonify({'error': 'Post not found'}), 404
+    
+    if post['author_id'] != current_user['id'] and current_user['role'] != 'admin':
+        return jsonify({'error': 'Permission denied'}), 403
+    
+    # 更新文章
+    metadata = {
+        'title': title,
+        'date': post['date'].isoformat() if hasattr(post['date'], 'isoformat') else post['date'],
+        'tags': tags,
+        'category': category,
+        'author_id': post['author_id'],
+        'author_name': post['author_name']
+    }
+    
+    article_content = '---\n'
+    for key, value in metadata.items():
+        if value:
+            if isinstance(value, list):
+                article_content += f'{key}: {value}\n'
+            else:
+                article_content += f'{key}: {value}\n'
+    article_content += '---\n\n'
+    article_content += content
+    
+    try:
+        with open(post_file, 'w', encoding='utf-8') as f:
+            f.write(article_content)
+        return jsonify({'message': 'Post updated successfully'}), 200
+    except Exception as e:
+        return jsonify({'error': 'Failed to update post'}), 500
 
 @app.route('/debug/giscus')
 def debug_giscus():
-    """调试 Giscus 配置的路由"""
     return jsonify({
         'giscus_config': app.config['GISCUS'],
         'debug_enabled': app.config.get('DEBUG_GISCUS', False),
@@ -214,60 +527,19 @@ def debug_giscus():
         'scheme': request.scheme
     })
 
-@app.route('/tags')
-def tags():
-    """标签页面，显示所有标签和每个标签下的文章"""
-    return render_template('tags.html', 
-                          tags=get_tags(), 
-                          tag_posts=get_posts_by_tag())
-
-@app.route('/tag/<tag>')
-def tag(tag):
-    """显示特定标签下的所有文章"""
-    tag_posts = get_posts_by_tag()
-    if tag in tag_posts:
-        posts = tag_posts[tag]
-        return render_template('index.html', 
-                              posts=posts, 
-                              title=f"标签: {tag}")
-    return render_template('index.html', 
-                          posts=[], 
-                          title=f"标签: {tag}",
-                          message=f"没有找到标签为 '{tag}' 的文章")
-
 def get_site_stats():
-    """获取网站统计信息"""
     posts = get_posts()
     tags = get_tags()
-    
-    # 计算网站运行天数
-    start_date = datetime(2024, 1, 1)  # 网站开始运行的日期
+    start_date = datetime(2024, 1, 1)
     days_running = (datetime.now() - start_date).days
-    
     return {
         'post_count': len(posts),
         'tag_count': len(tags),
         'days_running': days_running
     }
 
-@app.route('/archive')
-def archive():
-    """归档页面，按年份组织所有文章"""
-    articles = get_posts()
-    stats = get_site_stats()
-    return render_template('archive.html', 
-                         articles=articles,
-                         stats=stats)
-
-@app.route('/about')
-def about():
-    """关于页面"""
-    stats = get_site_stats()
-    return render_template('about.html', stats=stats)
-
 @app.template_filter('format_date')
 def format_date(date):
-    """自定义日期格式化过滤器"""
     if isinstance(date, str):
         try:
             date = datetime.strptime(date, '%Y-%m-%d')
@@ -277,10 +549,8 @@ def format_date(date):
 
 @app.route('/feed.xml')
 def feed():
-    """生成RSS feed"""
     posts = get_posts()
     
-    # 创建feed
     feed = feedgenerator.Rss201rev2Feed(
         title="我的博客",
         link=request.url_root,
@@ -290,31 +560,10 @@ def feed():
         feed_url=urljoin(request.url_root, url_for('feed')),
         image_url=urljoin(request.url_root, 'static/favicon.ico'),
         copyright=f"Copyright {datetime.now().year} 博客作者",
-        ttl=60  # 60分钟缓存
+        ttl=60
     )
 
-    # 添加文章到feed
-    for post in posts:
-        feed.add_item(
-            title=post.metadata.title,
-            link=urljoin(request.url_root, url_for('post', slug=post.slug)),
-            description=post.html,
-            author_name="博客作者",
-            pubdate=post.date,
-            unique_id=post.slug
-        )
-
-    # 生成feed内容
-    rss_feed = feed.writeString('utf-8')
-    
-    # 设置正确的Content-Type
-    response = make_response(rss_feed)
-    response.headers['Content-Type'] = 'application/rss+xml; charset=utf-8'
-    return response
-    
-    # 添加文章到feed
-    for post in posts[:10]:  # 只包含最新的10篇文章
-        # 确保日期是datetime对象
+    for post in posts[:10]:
         pub_date = post['date']
         if isinstance(pub_date, str):
             try:
@@ -322,10 +571,8 @@ def feed():
             except ValueError:
                 pub_date = datetime.now()
         
-        # 生成文章链接
-        post_url = urljoin(request.url_root, url_for('post', filename=post['filename']))
+        post_url = urljoin(request.url_root, url_for('api_post', filename=post['filename']))
         
-        # 添加文章到feed
         feed.add_item(
             title=post['title'],
             link=post_url,
@@ -334,15 +581,38 @@ def feed():
             categories=post.get('tags', [])
         )
     
-    # 生成RSS XML
     response = make_response(feed.writeString('utf-8'))
     response.headers['Content-Type'] = 'application/rss+xml; charset=utf-8'
     return response
 
 @app.errorhandler(404)
 def page_not_found(e):
-    """自定义404错误页面"""
-    return render_template('404.html'), 404
+    return jsonify({'error': 'Page not found'}), 404
+
+@app.errorhandler(401)
+def unauthorized_error(e):
+    return jsonify({'error': 'Unauthorized access'}), 401
+
+@app.errorhandler(403)
+def forbidden_error(e):
+    return jsonify({'error': 'Access forbidden'}), 403
+
+@app.errorhandler(400)
+def bad_request_error(e):
+    return jsonify({'error': 'Bad request'}), 400
+
+@app.errorhandler(500)
+def internal_error(e):
+    # 记录错误日志
+    app.logger.error(f'Internal error: {str(e)}')
+    # 在生产环境中不暴露详细错误信息
+    if os.getenv('FLASK_ENV') == 'production':
+        return jsonify({'error': 'Internal server error'}), 500
+    else:
+        # 开发环境中可以显示详细错误信息
+        return jsonify({'error': f'Internal server error: {str(e)}'}), 500
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
