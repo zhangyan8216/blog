@@ -7,6 +7,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import Admin from './pages/Admin'
 import EditPost from './pages/EditPost'
+import SearchResults from './pages/SearchResults'
 import Navbar from './components/Navbar'
 import Footer from './components/Footer'
 import { AuthProvider } from './contexts/AuthContext'
@@ -24,6 +25,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/register" element={<Register />} />
           <Route path="/admin" element={<Admin />} />
           <Route path="/edit/:filename" element={<EditPost />} />
+          <Route path="/search" element={<SearchResults />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

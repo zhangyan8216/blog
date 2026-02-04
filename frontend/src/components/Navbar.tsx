@@ -13,7 +13,8 @@ import {
   FaSun,
   FaBars,
   FaTimes,
-  FaBlog
+  FaBlog,
+  FaSearch
 } from 'react-icons/fa'
 
 const MotionLink = motion(Link)
@@ -21,8 +22,17 @@ const MotionLink = motion(Link)
 const Navbar: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [theme, setTheme] = useState<'light' | 'dark'>('light')
+  const [searchQuery, setSearchQuery] = useState('')
   const { user, isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`)
+      setSearchQuery('')
+    }
+  }
 
   // 从 localStorage 读取主题设置
   useEffect(() => {
@@ -92,6 +102,25 @@ const Navbar: React.FC = () => {
             <FaHome className="nav-icon" />
             <span>首页</span>
           </MotionLink>
+          
+          {/* 搜索框 */}
+          <motion.form 
+            className="nav-search"
+            onSubmit={handleSearch}
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <input
+              type="text"
+              placeholder="搜索文章..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-button">
+              <FaSearch />
+            </button>
+          </motion.form>
           {isAuthenticated ? (
             <>
               <motion.button
@@ -184,6 +213,23 @@ const Navbar: React.FC = () => {
             <FaHome className="menu-icon" />
             <span>首页</span>
           </Link>
+          
+          {/* 移动版搜索框 */}
+          <form 
+            className="menu-search"
+            onSubmit={handleSearch}
+          >
+            <input
+              type="text"
+              placeholder="搜索文章..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="search-input"
+            />
+            <button type="submit" className="search-button">
+              <FaSearch />
+            </button>
+          </form>
           {isAuthenticated ? (
             <>
               <button className="menu-link" onClick={() => setIsMenuOpen(false)}>

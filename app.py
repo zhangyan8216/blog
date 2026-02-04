@@ -80,57 +80,66 @@ def get_current_user_from_token():
 
 def get_posts():
     posts = []
-    for filename in os.listdir('content'):
-        if filename.endswith('.md'):
-            with open(os.path.join('content', filename), 'r', encoding='utf-8') as f:
-                content = f.read()
-                if content.startswith('---'):
-                    parts = content.split('---', 2)[1:]
-                    if len(parts) == 2:
-                        metadata = yaml.safe_load(parts[0])
-                        content = parts[1]
+    # 递归遍历 content 目录及其子目录
+    for root, dirs, files in os.walk('content'):
+        for filename in files:
+            if filename.endswith('.md'):
+                file_path = os.path.join(root, filename)
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    if content.startswith('---'):
+                        parts = content.split('---', 2)[1:]
+                        if len(parts) == 2:
+                            metadata = yaml.safe_load(parts[0])
+                            content = parts[1]
+                        else:
+                            metadata = {}
+                            content = content
                     else:
                         metadata = {}
-                        content = content
-                else:
-                    metadata = {}
-                
-                if 'title' not in metadata:
-                    metadata['title'] = os.path.splitext(filename)[0]
-                
-                if 'date' not in metadata:
-                    file_mtime = os.path.getmtime(os.path.join('content', filename))
-                    metadata['date'] = datetime.fromtimestamp(file_mtime)
-                else:
-                    from datetime import date
-                    if isinstance(metadata['date'], str):
-                        try:
-                            metadata['date'] = datetime.fromisoformat(metadata['date'])
-                        except ValueError:
-                            metadata['date'] = datetime.now()
-                    elif isinstance(metadata['date'], date) and not isinstance(metadata['date'], datetime):
-                        metadata['date'] = datetime.combine(metadata['date'], datetime.min.time())
-                
-                html_content = markdown.markdown(content)
-                import re
-                plain_text = re.sub('<[^<]+?>', '', html_content)
-                summary = plain_text[:200] + '...' if len(plain_text) > 200 else plain_text
-                
-                tags = metadata.get('tags', [])
-                if isinstance(tags, str):
-                    tags = [tag.strip() for tag in tags.split(',')]
-                
-                posts.append({
-                    'filename': os.path.splitext(filename)[0],
-                    'title': metadata.get('title'),
-                    'date': metadata.get('date'),
-                    'summary': summary,
-                    'content': content,
-                    'metadata': metadata,
-                    'tags': tags,
-                    'author_id': metadata.get('author_id'),
-                    'author_name': metadata.get('author_name')
-                })
+                    
+                    if 'title' not in metadata:
+                        metadata['title'] = os.path.splitext(filename)[0]
+                    
+                    if 'date' not in metadata:
+                        file_mtime = os.path.getmtime(file_path)
+                        metadata['date'] = datetime.fromtimestamp(file_mtime)
+                    else:
+                        from datetime import date
+                        if isinstance(metadata['date'], str):
+                            try:
+                                metadata['date'] = datetime.fromisoformat(metadata['date'])
+                            except ValueError:
+                                metadata['date'] = datetime.now()
+                        elif isinstance(metadata['date'], date) and not isinstance(metadata['date'], datetime):
+                            metadata['date'] = datetime.combine(metadata['date'], datetime.min.time())
+                    
+                    html_content = markdown.markdown(content)
+                    import re
+                    plain_text = re.sub('<[^<]+?>', '', html_content)
+                    summary = plain_text[:200] + '...' if len(plain_text) > 200 else plain_text
+                    
+                    tags = metadata.get('tags', [])
+                    if isinstance(tags, str):
+                        tags = [tag.strip() for tag in tags.split(',')]
+                    
+                    # 生成相对路径作为 filename，替换路径分隔符为连字符
+                    relative_path = os.path.relpath(file_path, 'content')
+                    filename_without_ext = os.path.splitext(relative_path)[0]
+                    # 将路径分隔符替换为连字符，确保前端路由正常工作
+                    clean_filename = filename_without_ext.replace(os.path.sep, '-')
+                    
+                    posts.append({
+                        'filename': clean_filename,
+                        'title': metadata.get('title'),
+                        'date': metadata.get('date'),
+                        'summary': summary,
+                        'content': content,
+                        'metadata': metadata,
+                        'tags': tags,
+                        'author_id': metadata.get('author_id'),
+                        'author_name': metadata.get('author_name')
+                    })
     
     return sorted(posts, key=lambda x: x['date'], reverse=True)
 

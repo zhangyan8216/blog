@@ -414,12 +414,35 @@ const PostDetail: React.FC = () => {
                 className="content-body" 
                 ref={contentRef}
                 dangerouslySetInnerHTML={{ 
-                  __html: (marked(post.content) as string).replace(/<h([1-6])([^>]*)>(.*?)<\/h[1-6]>/g, (_match: string, level: string, attrs: string, text: string) => {
-                    const id = text.toLowerCase().replace(/\s+/g, '-')
-                    return `<h${level} id="${id}" ${attrs}>${text}</h${level}>`
-                  })
+                  __html: (marked(post.content) as string)
+                    .replace(/<h([1-6])([^>]*)>(.*?)<\/h[1-6]>/g, (_match: string, level: string, attrs: string, text: string) => {
+                      const id = text.toLowerCase().replace(/\s+/g, '-')
+                      return `<h${level} id="${id}" ${attrs}>${text}</h${level}>`
+                    })
+                    // 为图片添加懒加载属性
+                    .replace(/<img([^>]*)src="([^"]*)"([^>]*)>/g, '<img$1src="$2"$3 loading="lazy">')
                 }}
               />
+            </motion.div>
+
+            {/* 评论区 */}
+            <motion.div 
+              className="post-comments"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <h3 className="comments-title">评论</h3>
+              <div className="utterances-container">
+                <iframe
+                  src={`https://utteranc.es/repo/zhangyan8216/blog/issues?issue-term=pathname&theme=github-light&crossorigin=anonymous`}
+                  title="Comments"
+                  frameBorder="0"
+                  scrolling="no"
+                  style={{ width: '100%', minHeight: '300px' }}
+                  loading="lazy"
+                />
+              </div>
             </motion.div>
           </div>
         </div>
