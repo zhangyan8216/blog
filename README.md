@@ -1,28 +1,56 @@
- # Flask Markdown 博客系统
+ # Memory-Blog 博客系统
 
-这是一个使用 Flask 框架构建的简单博客系统，支持 Markdown 格式的文章。它具有简洁的界面设计，支持代码高亮显示，并且完全响应式，可以在各种设备上良好显示。
+这是一个现代化的博客系统，由 Flask 后端和 React 前端组成，支持 Markdown 格式的文章。它具有简洁美观的界面设计，支持代码高亮显示，并且完全响应式，可以在各种设备上良好显示。
 
 ## 功能特点
 
+### 后端功能
 - 使用 Flask 框架构建
 - 支持 Markdown 格式文章
 - YAML 格式的文章元数据
+- RESTful API支持
+- 后台管理系统
+- 文章标签支持
+
+### 前端功能
+- 使用 React + TypeScript 构建
+- 使用 Framer Motion 实现流畅的动画效果
+- 使用 React Router 实现路由管理
 - 响应式设计，适配各种设备
 - 代码块语法高亮
 - 图片点击放大预览
-- 文章标签支持
 - 简洁美观的界面
 - 亮/暗主题切换功能
-- 后台管理系统
-- RESTful API支持
+- 文章详情页支持
+
+## 项目结构
+
+```
+Memory-Blog/
+├── app.py              # 后端主应用程序文件
+├── requirements.txt    # 后端项目依赖
+├── content/           # Markdown 文章目录
+├── frontend/          # 前端项目目录
+│   ├── src/           # 前端源代码
+│   │   ├── components/ # 前端组件
+│   │   ├── pages/      # 前端页面
+│   │   ├── services/    # API 服务
+│   │   ├── styles/      # 样式文件
+│   │   └── App.tsx      # 前端主应用
+│   ├── package.json    # 前端依赖
+│   └── vite.config.ts   # Vite 配置
+└── README.md          # 项目说明文件
+```
 
 ## 安装说明
+
+### 后端安装
 
 1. 克隆项目到本地：
 
 ```bash
 git clone <repository-url>
-cd flask-markdown-blog
+cd Memory-Blog
 ```
 
 2. 创建并激活虚拟环境：
@@ -43,116 +71,85 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-## 数据库配置
+### 前端安装
 
-1. 初始化数据库：
+1. 进入前端目录：
+
 ```bash
-flask db init
-flask db migrate
-flask db upgrade
+cd frontend
 ```
 
-2. 配置数据库连接：
-在 `instance/config.py` 中设置数据库URI：
-```python
-SQLALCHEMY_DATABASE_URI = 'sqlite:///blog.db'
-```
+2. 安装依赖包：
 
-## API 文档
-
-### 主题切换
-- 端点: `POST /api/theme`
-- 请求格式:
-```json
-{
-  "theme": "light"  # 或 "dark"
-}
-```
-- 响应示例:
-```json
-{
-  "success": true,
-  "theme": "dark",
-  "message": "主题已切换为 dark"
-}
-```
-
-## 主题切换功能
-
-1. 系统会自动检测用户设备的主题偏好
-2. 手动切换方式：
-   - 点击导航栏的主题切换按钮
-   - 主题偏好会保存在本地存储中
-   - 下次访问时自动应用上次选择的主题
-
-## 后台管理
-
-1. 访问 `/admin` 进入后台
-2. 默认登录凭证：
-   - 用户名: admin
-   - 密码: admin123
-   
-   ⚠️ 安全提示：首次登录后请立即修改默认密码！
-
-3. 修改密码方法：
 ```bash
-flask user change-password --username admin --new-password 你的新密码
+npm install
 ```
 
-4. 功能包括：
-   - 文章管理
-   - 用户管理
-   - 主题管理
-   - 系统设置
+## 运行说明
 
-## 使用说明
+### 运行后端服务器
 
-1. 启动博客系统：
-
-## 部署指南
-
-### 生产环境部署
-```bash
-gunicorn -w 4 -b 127.0.0.1:5000 app:app
-```
-
-### Nginx配置示例
-```nginx
-server {
-    listen 80;
-    server_name yourdomain.com;
-    
-    location / {
-        proxy_pass http://127.0.0.1:5000;
-    }
-}
-```
-
-## 开发贡献
-
-1. 安装开发依赖：
-```bash
-pip install -r requirements-dev.txt
-```
-
-2. 开发流程：
-- 创建新分支
-- 编写测试用例
-- 提交Pull Request
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题请联系：your-email@example.com
+1. 在项目根目录下运行：
 
 ```bash
 python app.py
 ```
 
-2. 在浏览器中访问：`http://localhost:5000`
+2. 后端服务器将运行在 `http://127.0.0.1:5000`
+
+### 运行前端开发服务器
+
+1. 在前端目录下运行：
+
+```bash
+npm run dev
+```
+
+2. 前端开发服务器将运行在 `http://localhost:3000/personal-blog-frontend/`
+
+## 构建前端项目
+
+在前端目录下运行：
+
+```bash
+npm run build
+```
+
+构建完成后，生产版本的文件将位于 `frontend/dist` 目录中。
+
+## API 文档
+
+### 获取文章列表
+- 端点: `GET /api/posts`
+- 响应示例:
+```json
+[
+  {
+    "filename": "test-tech-article",
+    "title": "测试技术文章",
+    "date": "2026-02-04",
+    "summary": "这是一篇测试技术文章的摘要...",
+    "content": "---\ntitle: 测试技术文章\n...",
+    "metadata": {"title": "测试技术文章"},
+    "tags": ["技术", "测试"]
+  }
+]
+```
+
+### 获取单篇文章
+- 端点: `GET /api/posts/{filename}`
+- 响应示例:
+```json
+{
+  "filename": "test-tech-article",
+  "title": "测试技术文章",
+  "date": "2026-02-04",
+  "summary": "这是一篇测试技术文章的摘要...",
+  "content": "---\ntitle: 测试技术文章\n...",
+  "metadata": {"title": "测试技术文章"},
+  "tags": ["技术", "测试"]
+}
+```
 
 ## 创建新文章
 
@@ -175,39 +172,40 @@ tags: [标签1, 标签2]
 - `date`: 发布日期，格式为 YYYY-MM-DD（必需）
 - `tags`: 文章标签，以数组形式提供（可选）
 
-## 目录结构
+## 部署指南
 
+### 前端部署
+
+前端项目配置了 GitHub Actions 工作流，可以自动部署到 GitHub Pages：
+
+1. 推送到 `main` 分支
+2. GitHub Actions 将自动构建并部署到 GitHub Pages
+3. 访问 `https://zhangyan8216.github.io/personal-blog-frontend/` 查看部署结果
+
+### 后端部署
+
+可以使用 Gunicorn 部署后端：
+
+```bash
+gunicorn -w 4 -b 127.0.0.1:5000 app:app
 ```
-flask-markdown-blog/
-├── app.py              # 主应用程序文件
-├── requirements.txt    # 项目依赖
-├── content/           # Markdown 文章目录
-├── static/           # 静态文件目录
-│   ├── css/         # CSS 样式文件
-│   └── js/          # JavaScript 文件
-└── templates/        # 模板文件目录
-    ├── base.html    # 基础模板
-    ├── index.html   # 首页模板
-    ├── post.html    # 文章页模板
-    └── about.html   # 关于页面模板
-```
-
-## 自定义主题
-
-你可以通过修改 `static/css/style.css` 文件来自定义博客的外观。主要的样式类包括：
-
-- `.blog-post`: 文章容器
-- `.blog-post-content`: 文章内容
-- `.card`: 文章卡片（在首页）
-- `.navbar`: 导航栏
 
 ## 依赖项
 
+### 后端依赖
 - Flask
 - Python-Markdown
 - PyYAML
-- Python-Frontmatter
 - Pygments（用于代码高亮）
+
+### 前端依赖
+- React
+- TypeScript
+- Framer Motion
+- React Router DOM
+- React Icons
+- Marked
+- Sass
 
 ## 浏览器支持
 
@@ -226,7 +224,7 @@ flask-markdown-blog/
 
 ## 许可证
 
-MIT License - 详见 LICENSE 文件
+MIT License
 
 ## 作者
 
@@ -234,14 +232,18 @@ MIT License - 详见 LICENSE 文件
 
 ## 致谢
 
-- Bootstrap
-- Prism.js
 - Flask 社区
+- React 社区
+- Framer Motion
+- Marked
 
 ## 更新日志
 
-### v1.0.0 (2024-06-06)
+### v1.0.0 (2026-02-04)
 - 初始版本发布
 - 基本的博客功能实现
 - Markdown 支持
 - 响应式设计
+- 前端使用 React + TypeScript 构建
+- 后端使用 Flask 构建
+- 支持 GitHub Pages 自动部署
